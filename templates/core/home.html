@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Welcome to Job Finder</h1>
+  {% if user.is_authenticated %}
+    <p>Hello, {{ user.first_name|default:user.username }}.</p>
+  {% else %}
+    <p>Find your next role or your next hire.</p>
+    <p>
+      <a href="{% url 'accounts:register' %}">Create an account</a> or
+      <a href="{% url 'accounts:login' %}">log in</a>.
+    </p>
+  {% endif %}
+{% endblock %}

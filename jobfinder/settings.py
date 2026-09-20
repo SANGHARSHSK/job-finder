@@ -1,5 +1,5 @@
 from pathlib import Path
-
+from django.contrib.messages import constants as message_constants
 import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -76,3 +76,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AUTH_USER_MODEL = "accounts.User"
+
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "core:home"
+LOGOUT_REDIRECT_URL = "core:home"
+
+MESSAGE_TAGS = {message_constants.ERROR: "danger"}
