@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}My jobs · Job Finder{% endblock %}
+
+{% block content %}
+  <h1>My jobs</h1>
+  <p><a href="{% url 'jobs:create' %}" class="btn btn-primary">Post a new job</a></p>
+
+  {% if jobs %}
+    <table class="table">
+      <thead>
+        <tr><th>Title</th><th>Location</th><th>Status</th><th>Posted</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for job in jobs %}
+          <tr>
+            <td>{{ job.title }}</td>
+            <td>{{ job.location }}</td>
+            <td>{{ job.get_status_display }}</td>
+            <td>{{ job.created_at|date:"M j, Y" }}</td>
+            <td>
+              <a href="{% url 'jobs:update' pk=job.pk %}">Edit</a>
+              · <a href="{% url 'jobs:delete' pk=job.pk %}">Delete</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>You haven't posted any jobs yet.</p>
+  {% endif %}
+{% endblock %}
