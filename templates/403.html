@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}Access denied · Job Finder{% endblock %}
+
+{% block content %}
+  <h1>Access denied</h1>
+  <p>You don't have permission to view this page.</p>
+  <p><a href="{% url 'core:home' %}">Back to the home page</a></p>
+{% endblock %}

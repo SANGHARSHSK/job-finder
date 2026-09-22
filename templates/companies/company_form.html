@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}My company · Job Finder{% endblock %}
+
+{% block content %}
+  <h1>{% if company %}Edit company{% else %}Create your company{% endif %}</h1>
+  <form method="post">
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit" class="btn btn-primary">Save company</button>
+    {% if company %}
+      <a href="{% url 'companies:detail' pk=company.pk %}">View public page</a>
+    {% endif %}
+  </form>
+{% endblock %}

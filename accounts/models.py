@@ -1,30 +1,28 @@
-from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
-from django.conf import settings
+from django.db import models
 
 from core.models import TimeStampedModel
-
-
-# Create your models here.
 
 phone_validator = RegexValidator(
     regex=r"^\+?[0-9 ()-]{7,20}$",
     message="Enter a valid phone number.",
 )
 
+
 class User(AbstractUser):
     class Role(models.TextChoices):
-        JOB_SEEKER = "job_seeker", "job seeker"
+        JOB_SEEKER = "job_seeker", "Job Seeker"
         EMPLOYER = "employer", "Employer"
 
-    email = models.EmailField("email address", unique = True)
+    email = models.EmailField("email address", unique=True)
     role = models.CharField(
-        max_length = 20,
-        choices = Role.choices,
-        blank = True,
-        default = "",
-    )  
+        max_length=20,
+        choices=Role.choices,
+        blank=True,
+        default="",
+    )
 
     @property
     def is_job_seeker(self):
@@ -34,11 +32,25 @@ class User(AbstractUser):
     def is_employer(self):
         return self.role == self.Role.EMPLOYER
 
+    def get_profile(self):
+        """Return this user's role profile, creating it if it is missing.
+
+        Users without a role (e.g. superusers) have no profile and get None.
+        """
+        if self.is_job_seeker:
+            profile, _ = JobSeekerProfile.objects.get_or_create(user=self)
+        elif self.is_employer:
+            profile, _ = EmployerProfile.objects.get_or_create(user=self)
+        else:
+            return None
+        return profile
+
+
 class JobSeekerProfile(TimeStampedModel):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
-        on_delete = models.CASCADE,
-        related_name = "job_seeker_profile",
+        on_delete=models.CASCADE,
+        related_name="job_seeker_profile",
     )
     phone = models.CharField(max_length=20, blank=True, validators=[phone_validator])
     location = models.CharField(max_length=100, blank=True)
@@ -49,13 +61,13 @@ class JobSeekerProfile(TimeStampedModel):
     def __str__(self):
         return f"Job seeker profile: {self.user.username}"
 
+
 class EmployerProfile(TimeStampedModel):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
-        on_delete = models.CASCADE,
-        related_name = "employer_profile",
-    )    
-
+        on_delete=models.CASCADE,
+        related_name="employer_profile",
+    )
     job_title = models.CharField(max_length=100, blank=True)
     phone = models.CharField(max_length=20, blank=True, validators=[phone_validator])
 

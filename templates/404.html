@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found · Job Finder{% endblock %}
+
+{% block content %}
+  <h1>Page not found</h1>
+  <p>The page you were looking for doesn't exist.</p>
+  <p><a href="{% url 'core:home' %}">Back to the home page</a></p>
+{% endblock %}

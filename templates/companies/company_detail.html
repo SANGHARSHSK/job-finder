@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} · Job Finder{% endblock %}
+
+{% block content %}
+  <h1>{{ company.name }}</h1>
+
+  <dl>
+    {% if company.industry %}<dt>Industry</dt><dd>{{ company.industry }}</dd>{% endif %}
+    {% if company.location %}<dt>Location</dt><dd>{{ company.location }}</dd>{% endif %}
+    {% if company.company_size %}<dt>Size</dt><dd>{{ company.get_company_size_display }}</dd>{% endif %}
+    {% if company.website %}<dt>Website</dt><dd><a href="{{ company.website }}">{{ company.website }}</a></dd>{% endif %}
+  </dl>
+
+  {% if company.description %}
+    <h2>About</h2>
+    <p>{{ company.description|linebreaksbr }}</p>
+  {% endif %}
+
+  {% if user.is_authenticated and user.is_employer and user.get_profile == company.owner %}
+    <p><a href="{% url 'companies:edit' %}">Edit this company</a></p>
+  {% endif %}
+{% endblock %}
