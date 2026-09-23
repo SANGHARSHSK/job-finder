@@ -8,6 +8,65 @@ from core.mixins import EmployerRequiredMixin
 from .forms import JobForm
 from .models import Job
 
+from django.core.paginator import Paginator
+from django.views.generic import DetailView, ListView
+
+
+class JobListView(ListView):
+    model = Job
+    template_name = "jobs/job_list.html"
+    context_object_name = "jobs"
+    paginate_by = 10
+
+    def get_queryset(self):
+        queryset = Job.objects.select_related("company").open()
+        queryset = queryset.search(self.request.GET.get("q", "").strip())
+
+        location = self.request.GET.get("location", "").strip()
+        if location:
+            queryset = queryset.filter(location__icontains=location)
+
+        employment_type = self.request.GET.get("type", "")
+        if employment_type in Job.EmploymentType.values:
+            queryset = queryset.filter(employment_type=employment_type)
+
+        experience_level = self.request.GET.get("level", "")
+        if experience_level in Job.ExperienceLevel.values:
+            queryset = queryset.filter(experience_level=experience_level)
+
+        sort = self.request.GET.get("sort", "newest")
+        if sort == "oldest":
+            queryset = queryset.order_by("created_at")
+        else:
+            queryset = queryset.order_by("-created_at")
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["employment_types"] = Job.EmploymentType.choices
+        context["experience_levels"] = Job.ExperienceLevel.choices
+        context["current_filters"] = self.request.GET
+        return context
+
+
+class JobDetailView(DetailView):
+    template_name = "jobs/job_detail.html"
+    context_object_name = "job"
+
+    def get_queryset(self):
+        return Job.objects.select_related("company").exclude(status=Job.Status.REMOVED)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        if user.is_authenticated and user.is_job_seeker:
+            from applications.models import Application  # local import avoids a circular import
+
+            context["has_applied"] = Application.objects.filter(
+                job=self.object, applicant=user.get_profile()
+            ).exists()
+        return context
 
 class OwnerJobMixin(EmployerRequiredMixin):
     """Restrict create/edit/delete to jobs owned by the logged-in employer's company."""

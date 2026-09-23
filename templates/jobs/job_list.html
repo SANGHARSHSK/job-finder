@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Browse jobs · Job Finder{% endblock %}
+
+{% block content %}
+  <h1>Browse jobs</h1>
+
+  <form method="get" class="row g-2 mb-4">
+    <div class="col-md-4">
+      <input type="text" name="q" value="{{ current_filters.q }}" class="form-control" placeholder="Title, company or location">
+    </div>
+    <div class="col-md-2">
+      <input type="text" name="location" value="{{ current_filters.location }}" class="form-control" placeholder="Location">
+    </div>
+    <div class="col-md-2">
+      <select name="type" class="form-select">
+        <option value="">Any type</option>
+        {% for value, label in employment_types %}
+          <option value="{{ value }}" {% if current_filters.type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="level" class="form-select">
+        <option value="">Any level</option>
+        {% for value, label in experience_levels %}
+          <option value="{{ value }}" {% if current_filters.level == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-1">
+      <select name="sort" class="form-select">
+        <option value="newest" {% if current_filters.sort != "oldest" %}selected{% endif %}>Newest</option>
+        <option value="oldest" {% if current_filters.sort == "oldest" %}selected{% endif %}>Oldest</option>
+      </select>
+    </div>
+    <div class="col-md-1">
+      <button type="submit" class="btn btn-primary w-100">Search</button>
+    </div>
+  </form>
+
+  {% if jobs %}
+    {% for job in jobs %}
+      <div class="border-bottom py-3">
+        <h2 class="h5 mb-1"><a href="{% url 'jobs:detail' pk=job.pk %}">{{ job.title }}</a></h2>
+        <p class="mb-1 text-muted">
+          {{ job.company.name }} · {{ job.location }} ·
+          {{ job.get_employment_type_display }} · {{ job.get_experience_level_display }}
+        </p>
+        <p class="mb-0">{{ job.description|truncatewords:30 }}</p>
+      </div>
+    {% endfor %}
+
+    {% if is_paginated %}
+      <nav aria-label="Job list pagination" class="mt-4">
+        <ul class="pagination">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{{ current_filters.urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?{{ current_filters.urlencode }}&page={{ page_obj.next_page_number }}">Next</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  {% else %}
+    <p>No jobs match your search.</p>
+  {% endif %}
+{% endblock %}

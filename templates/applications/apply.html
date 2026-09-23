@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Apply · {{ job.title }} · Job Finder{% endblock %}
+
+{% block content %}
+  <h1>Apply for {{ job.title }}</h1>
+  <p class="text-muted">{{ job.company.name }} · {{ job.location }}</p>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit" class="btn btn-primary">Submit application</button>
+    <a href="{% url 'jobs:detail' pk=job.pk %}">Cancel</a>
+  </form>
+{% endblock %}

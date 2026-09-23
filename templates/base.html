@@ -10,9 +10,10 @@
   <a class="visually-hidden-focusable" href="#main-content">Skip to main content</a>
 
   <header class="container py-3">
-    <nav aria-label="Main navigation" class="d-flex flex-wrap align-items-center gap-3">
+        <nav aria-label="Main navigation" class="d-flex flex-wrap align-items-center gap-3">
       <a href="{% url 'core:home' %}" class="fw-bold text-decoration-none">Job Finder</a>
-            {% if user.is_authenticated %}
+      <a href="{% url 'jobs:list' %}">Browse jobs</a>
+      {% if user.is_authenticated %}
         {% if user.is_employer %}
           <a class="ms-auto" href="{% url 'companies:edit' %}">My company</a>
           <a href="{% url 'jobs:employer_job_list' %}">My jobs</a>

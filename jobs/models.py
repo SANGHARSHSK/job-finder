@@ -1,11 +1,28 @@
 from django.db import models
 from django.urls import reverse
-
+from django.db.models import Q
 from companies.models import Company
 from core.models import TimeStampedModel
 
+from django.db.models import Q
+
+
+class JobQuerySet(models.QuerySet):
+    def open(self):
+        return self.filter(status=Job.Status.OPEN)
+
+    def search(self, query):
+        if not query:
+            return self
+        return self.filter(
+            Q(title__icontains=query)
+            | Q(company__name__icontains=query)
+            | Q(location__icontains=query)
+        )
 
 class Job(TimeStampedModel):
+    objects = JobQuerySet.as_manager()
+
     class EmploymentType(models.TextChoices):
         FULL_TIME = "full_time", "Full-time"
         PART_TIME = "part_time", "Part-time"
@@ -52,3 +69,5 @@ class Job(TimeStampedModel):
     @property
     def is_open(self):
         return self.status == self.Status.OPEN
+
+    
