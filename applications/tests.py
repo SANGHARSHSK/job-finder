@@ -225,3 +225,105 @@ class ResumeDownloadViewTests(TestCase):
         self.client.force_login(self.other_employer)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 403)
+
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
+class MyApplicationsListViewTests(TestCase):
+    def setUp(self):
+        self.url = reverse("applications:my_applications")
+
+    def test_requires_login(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+    def test_employer_gets_403(self):
+        self.client.force_login(make_employer())
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_seeker_sees_only_own_applications(self):
+        employer = make_employer()
+        job = make_job(employer)
+        seeker_a = make_seeker("alice")
+        seeker_b = make_seeker("bob")
+        Application.objects.create(job=job, applicant=seeker_a.get_profile(), resume=pdf_file())
+        Application.objects.create(job=job, applicant=seeker_b.get_profile(), resume=pdf_file())
+
+        self.client.force_login(seeker_a)
+        response = self.client.get(self.url)
+
+        self.assertEqual(len(response.context["applications"]), 1)
+        self.assertEqual(response.context["applications"][0].applicant, seeker_a.get_profile())
+
+    def test_empty_state_message(self):
+        self.client.force_login(make_seeker())
+        response = self.client.get(self.url)
+        self.assertContains(response, "haven't applied")
+
+    def test_withdraw_link_shown_only_when_withdrawable(self):
+        employer = make_employer()
+        job = make_job(employer)
+        seeker = make_seeker()
+        application = Application.objects.create(
+            job=job, applicant=seeker.get_profile(), resume=pdf_file(),
+            status=Application.Status.HIRED,
+        )
+        self.client.force_login(seeker)
+
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, "Withdraw")
+
+
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
+class WithdrawApplicationTests(TestCase):
+    def setUp(self):
+        self.employer = make_employer()
+        self.job = make_job(self.employer)
+        self.seeker = make_seeker()
+        self.application = Application.objects.create(
+            job=self.job, applicant=self.seeker.get_profile(), resume=pdf_file()
+        )
+        self.url = reverse("applications:withdraw", kwargs={"pk": self.application.pk})
+
+    def test_requires_login(self):
+        response = self.client.post(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.seeker)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+
+    def test_owner_can_withdraw(self):
+        self.client.force_login(self.seeker)
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, reverse("applications:my_applications"))
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, Application.Status.WITHDRAWN)
+
+    def test_other_seeker_cannot_withdraw(self):
+        other_seeker = make_seeker("bob")
+        self.client.force_login(other_seeker)
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 404)
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, Application.Status.APPLIED)
+
+    def test_employer_cannot_withdraw(self):
+        self.client.force_login(self.employer)
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_already_hired_application_cannot_be_withdrawn(self):
+        self.application.status = Application.Status.HIRED
+        self.application.save()
+        self.client.force_login(self.seeker)
+
+        response = self.client.post(self.url, follow=True)
+
+        self.assertRedirects(response, reverse("applications:my_applications"))
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, Application.Status.HIRED)        

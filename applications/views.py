@@ -6,7 +6,10 @@ from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+from django.views.generic import ListView
 
+from core.mixins import JobSeekerRequiredMixin
 from jobs.models import Job
 
 from .forms import ApplicationForm
@@ -68,3 +71,37 @@ def resume_download(request, pk):
     return FileResponse(
         application.resume.open("rb"), as_attachment=True, filename=filename
     )
+
+class MyApplicationsListView(JobSeekerRequiredMixin, ListView):
+    model = Application
+    template_name = "applications/my_applications.html"
+    context_object_name = "applications"
+
+    def get_queryset(self):
+        return (
+            Application.objects.filter(applicant=self.request.user.get_profile())
+            .select_related("job", "job__company")
+        )
+
+
+@login_required
+@require_POST
+def withdraw_application(request, pk):
+    if not request.user.is_job_seeker:
+        raise PermissionDenied
+
+    # Filtering by applicant here, not just pk, is the ownership check: a
+    # mismatched pk simply isn't in this queryset, so it 404s rather than
+    # leaking whether someone else's application exists.
+    application = get_object_or_404(
+        Application, pk=pk, applicant=request.user.get_profile()
+    )
+
+    if not application.can_withdraw():
+        messages.error(request, "This application can no longer be withdrawn.")
+        return redirect("applications:my_applications")
+
+    application.status = Application.Status.WITHDRAWN
+    application.save(update_fields=["status", "updated_at"])
+    messages.success(request, "Application withdrawn.")
+    return redirect("applications:my_applications")

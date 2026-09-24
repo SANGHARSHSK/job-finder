@@ -17,8 +17,10 @@
         {% if user.is_employer %}
           <a class="ms-auto" href="{% url 'companies:edit' %}">My company</a>
           <a href="{% url 'jobs:employer_job_list' %}">My jobs</a>
+        {% elif user.is_job_seeker %}
+          <a class="ms-auto" href="{% url 'applications:my_applications' %}">My applications</a>
         {% endif %}
-        <a {% if not user.is_employer %}class="ms-auto"{% endif %} href="{% url 'accounts:profile' %}">Profile</a>
+        <a {% if not user.is_employer and not user.is_job_seeker %}class="ms-auto"{% endif %} href="{% url 'accounts:profile' %}">Profile</a>
         <span>
           Signed in as {{ user.username }}{% if user.role %} ({{ user.get_role_display }}){% endif %}
         </span>

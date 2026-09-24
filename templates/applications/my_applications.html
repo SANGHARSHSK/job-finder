@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}My applications · Job Finder{% endblock %}
+
+{% block content %}
+  <h1>My applications</h1>
+
+  {% if applications %}
+    <table class="table">
+      <thead>
+        <tr><th>Job</th><th>Company</th><th>Status</th><th>Applied</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for application in applications %}
+          <tr>
+            <td><a href="{% url 'jobs:detail' pk=application.job.pk %}">{{ application.job.title }}</a></td>
+            <td>{{ application.job.company.name }}</td>
+            <td>{{ application.get_status_display }}</td>
+            <td>{{ application.created_at|date:"M j, Y" }}</td>
+            <td>
+              <a href="{% url 'applications:resume_download' pk=application.pk %}">Resume</a>
+              {% if application.can_withdraw %}
+                · <form method="post" action="{% url 'applications:withdraw' pk=application.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link p-0">Withdraw</button>
+                  </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>You haven't applied to any jobs yet. <a href="{% url 'jobs:list' %}">Browse jobs</a>.</p>
+  {% endif %}
+{% endblock %}
