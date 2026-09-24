@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
 from core.mixins import JobSeekerRequiredMixin
+from core.mixins import EmployerRequiredMixin
 from jobs.models import Job
 
 from .forms import ApplicationForm
@@ -105,3 +106,58 @@ def withdraw_application(request, pk):
     application.save(update_fields=["status", "updated_at"])
     messages.success(request, "Application withdrawn.")
     return redirect("applications:my_applications")
+
+class JobApplicantsListView(EmployerRequiredMixin, ListView):
+    template_name = "applications/job_applicants.html"
+    context_object_name = "applications"
+
+    def get_job(self):
+        profile = self.request.user.get_profile()
+        company = getattr(profile, "company", None)
+        # company=None simply matches no jobs if the employer has no company
+        # yet, so this 404s safely instead of raising an attribute error.
+        return get_object_or_404(Job, pk=self.kwargs["pk"], company=company)
+
+    def get_queryset(self):
+        self.job = self.get_job()
+        return (
+            Application.objects.filter(job=self.job)
+            .select_related("applicant__user")
+            .order_by("-created_at")
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["job"] = self.job
+        for application in context["applications"]:
+            application.allowed_transitions = [
+                (value, label)
+                for value, label in Application.Status.choices
+                if application.can_employer_transition_to(value)
+            ]
+        return context
+
+
+@login_required
+@require_POST
+def update_application_status(request, pk):
+    if not request.user.is_employer:
+        raise PermissionDenied
+
+    profile = request.user.get_profile()
+    company = getattr(profile, "company", None)
+    application = get_object_or_404(Application, pk=pk, job__company=company)
+
+    new_status = request.POST.get("status")
+    if new_status not in dict(Application.Status.choices):
+        messages.error(request, "Invalid status.")
+        return redirect("applications:job_applicants", pk=application.job.pk)
+
+    if not application.can_employer_transition_to(new_status):
+        messages.error(request, "That status change isn't allowed.")
+        return redirect("applications:job_applicants", pk=application.job.pk)
+
+    application.status = new_status
+    application.save(update_fields=["status", "updated_at"])
+    messages.success(request, "Application status updated.")
+    return redirect("applications:job_applicants", pk=application.job.pk)

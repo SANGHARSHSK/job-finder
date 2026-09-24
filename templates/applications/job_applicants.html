@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Applicants · {{ job.title }} · Job Finder{% endblock %}
+
+{% block content %}
+  <h1>Applicants for {{ job.title }}</h1>
+  <p><a href="{% url 'jobs:employer_job_list' %}">Back to my jobs</a></p>
+
+  {% if applications %}
+    {% for application in applications %}
+      <div class="border-bottom py-3">
+        <h2 class="h6 mb-1">
+          {{ application.applicant.user.get_full_name|default:application.applicant.user.username }}
+          — <span class="text-muted">{{ application.get_status_display }}</span>
+        </h2>
+        <p class="mb-1">
+          <a href="{% url 'applications:resume_download' pk=application.pk %}">Download resume</a>
+          · Applied {{ application.created_at|date:"M j, Y" }}
+        </p>
+        {% if application.cover_letter %}
+          <p class="mb-2">{{ application.cover_letter|linebreaksbr }}</p>
+        {% endif %}
+
+        {% if application.allowed_transitions %}
+          <form method="post" action="{% url 'applications:update_status' pk=application.pk %}" class="d-flex gap-2">
+            {% csrf_token %}
+            <select name="status" class="form-select form-select-sm w-auto">
+              {% for value, label in application.allowed_transitions %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">Update status</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No one has applied to this job yet.</p>
+  {% endif %}
+{% endblock %}

@@ -327,3 +327,131 @@ class WithdrawApplicationTests(TestCase):
         self.assertRedirects(response, reverse("applications:my_applications"))
         self.application.refresh_from_db()
         self.assertEqual(self.application.status, Application.Status.HIRED)        
+
+
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
+class JobApplicantsListViewTests(TestCase):
+    def setUp(self):
+        self.employer = make_employer("acme")
+        self.other_employer = make_employer("beta")
+        self.job = make_job(self.employer)
+        self.seeker = make_seeker()
+        self.application = Application.objects.create(
+            job=self.job, applicant=self.seeker.get_profile(), resume=pdf_file()
+        )
+        self.url = reverse("applications:job_applicants", kwargs={"pk": self.job.pk})
+
+    def test_requires_login(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+    def test_seeker_gets_403(self):
+        self.client.force_login(make_seeker("bob"))
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_sees_applicants(self):
+        self.client.force_login(self.employer)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.seeker.username)
+
+    def test_other_employer_gets_404(self):
+        self.client.force_login(self.other_employer)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_empty_state_message(self):
+        empty_job = make_job(self.employer, title="No Applicants Yet")
+        self.client.force_login(self.employer)
+
+        response = self.client.get(reverse("applications:job_applicants", kwargs={"pk": empty_job.pk}))
+
+        self.assertContains(response, "No one has applied")
+
+    def test_status_dropdown_hidden_for_final_status(self):
+        self.application.status = Application.Status.REJECTED
+        self.application.save()
+        self.client.force_login(self.employer)
+
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, "Update status")
+
+
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
+class UpdateApplicationStatusTests(TestCase):
+    def setUp(self):
+        self.employer = make_employer("acme")
+        self.other_employer = make_employer("beta")
+        self.job = make_job(self.employer)
+        self.seeker = make_seeker()
+        self.application = Application.objects.create(
+            job=self.job, applicant=self.seeker.get_profile(), resume=pdf_file()
+        )
+        self.url = reverse("applications:update_status", kwargs={"pk": self.application.pk})
+
+    def test_requires_login(self):
+        response = self.client.post(self.url, {"status": Application.Status.SHORTLISTED})
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.employer)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+
+    def test_seeker_gets_403(self):
+        self.client.force_login(self.seeker)
+        response = self.client.post(self.url, {"status": Application.Status.SHORTLISTED})
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_can_move_forward(self):
+        self.client.force_login(self.employer)
+        response = self.client.post(self.url, {"status": Application.Status.SHORTLISTED})
+
+        self.assertRedirects(
+            response, reverse("applications:job_applicants", kwargs={"pk": self.job.pk})
+        )
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, Application.Status.SHORTLISTED)
+
+    def test_other_employer_cannot_update(self):
+        self.client.force_login(self.other_employer)
+        response = self.client.post(self.url, {"status": Application.Status.SHORTLISTED})
+
+        self.assertEqual(response.status_code, 404)
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, Application.Status.APPLIED)
+
+    def test_disallowed_transition_is_rejected(self):
+        self.application.status = Application.Status.REJECTED
+        self.application.save()
+        self.client.force_login(self.employer)
+
+        response = self.client.post(self.url, {"status": Application.Status.HIRED}, follow=True)
+
+        self.assertRedirects(
+            response, reverse("applications:job_applicants", kwargs={"pk": self.job.pk})
+        )
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, Application.Status.REJECTED)
+
+    def test_invalid_status_value_is_rejected(self):
+        self.client.force_login(self.employer)
+        response = self.client.post(self.url, {"status": "not-a-real-status"}, follow=True)
+
+        self.assertRedirects(
+            response, reverse("applications:job_applicants", kwargs={"pk": self.job.pk})
+        )
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, Application.Status.APPLIED)
+
+    def test_withdrawn_application_cannot_be_updated_by_employer(self):
+        self.application.status = Application.Status.WITHDRAWN
+        self.application.save()
+        self.client.force_login(self.employer)
+
+        response = self.client.post(self.url, {"status": Application.Status.SHORTLISTED}, follow=True)
+
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, Application.Status.WITHDRAWN)        
