@@ -13,12 +13,23 @@
     <p class="alert alert-secondary">This job is no longer accepting applications.</p>
   {% endif %}
 
-  {% if job.salary_min or job.salary_max %}
-    <p><strong>Salary:</strong>
-      {% if job.salary_min and job.salary_max %}{{ job.salary_min }}–{{ job.salary_max }}
-      {% elif job.salary_min %}From {{ job.salary_min }}
-      {% else %}Up to {{ job.salary_max }}{% endif %}
-    </p>
+    {% if user.is_authenticated and user.is_job_seeker %}
+    <form method="post" action="{% url 'jobs:toggle_save' pk=job.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-secondary btn-sm">
+        {% if is_saved %}Remove from saved jobs{% else %}Save job{% endif %}
+      </button>
+    </form>
+  {% endif %}
+
+  {% if user.is_authenticated and user.is_job_seeker %}
+    {% if has_applied %}
+      <p class="alert alert-info">You've already applied to this job.</p>
+    {% elif job.is_open %}
+      <p><a href="{% url 'applications:apply' pk=job.pk %}" class="btn btn-primary">Apply now</a></p>
+    {% endif %}
+  {% elif not user.is_authenticated %}
+    <p><a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in as a job seeker to apply</a></p>
   {% endif %}
 
   <h2 class="h5">Description</h2>

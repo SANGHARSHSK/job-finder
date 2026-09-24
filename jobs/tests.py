@@ -5,6 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.test import override_settings
 from applications.models import Application
+from jobs.models import SavedJob
 
 
 from accounts.models import User
@@ -404,4 +405,121 @@ class JobDeleteWithApplicationsTests(TestCase):
         self.assertRedirects(response, reverse("jobs:employer_job_list"))
         self.assertContains(response, "can&#x27;t be deleted")
         self.assertTrue(Job.objects.filter(pk=job.pk).exists())
-             
+
+
+from jobs.models import SavedJob
+
+
+class SavedJobModelTests(TestCase):
+    def test_string_representation(self):
+        employer = make_employer()
+        seeker = make_seeker()
+        job = make_job(employer, title="Backend Developer")
+        saved = SavedJob.objects.create(applicant=seeker.get_profile(), job=job)
+        self.assertEqual(str(saved), "alice saved Backend Developer")
+
+    def test_duplicate_save_is_rejected_at_database_level(self):
+        employer = make_employer()
+        seeker = make_seeker()
+        job = make_job(employer)
+        SavedJob.objects.create(applicant=seeker.get_profile(), job=job)
+
+        with self.assertRaises(Exception):
+            SavedJob.objects.create(applicant=seeker.get_profile(), job=job)
+
+
+class ToggleSaveJobTests(TestCase):
+    def setUp(self):
+        self.employer = make_employer()
+        self.job = make_job(self.employer)
+        self.url = reverse("jobs:toggle_save", kwargs={"pk": self.job.pk})
+
+    def test_requires_login(self):
+        response = self.client.post(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(make_seeker())
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+
+    def test_employer_gets_403(self):
+        self.client.force_login(make_employer("beta"))
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_first_post_saves_the_job(self):
+        seeker = make_seeker()
+        self.client.force_login(seeker)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, reverse("jobs:detail", kwargs={"pk": self.job.pk}))
+        self.assertTrue(
+            SavedJob.objects.filter(applicant=seeker.get_profile(), job=self.job).exists()
+        )
+
+    def test_second_post_unsaves_the_job(self):
+        seeker = make_seeker()
+        self.client.force_login(seeker)
+
+        self.client.post(self.url)
+        self.client.post(self.url)
+
+        self.assertFalse(
+            SavedJob.objects.filter(applicant=seeker.get_profile(), job=self.job).exists()
+        )
+
+    def test_saving_does_not_affect_other_seekers(self):
+        seeker_a = make_seeker("alice")
+        seeker_b = make_seeker("bob")
+        self.client.force_login(seeker_a)
+        self.client.post(self.url)
+
+        self.assertFalse(
+            SavedJob.objects.filter(applicant=seeker_b.get_profile(), job=self.job).exists()
+        )
+
+
+class SavedJobsListViewTests(TestCase):
+    def setUp(self):
+        self.url = reverse("jobs:saved_jobs")
+
+    def test_requires_login(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+    def test_employer_gets_403(self):
+        self.client.force_login(make_employer())
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_seeker_sees_only_own_saved_jobs(self):
+        employer = make_employer()
+        job = make_job(employer)
+        seeker_a = make_seeker("alice")
+        seeker_b = make_seeker("bob")
+        SavedJob.objects.create(applicant=seeker_a.get_profile(), job=job)
+        SavedJob.objects.create(applicant=seeker_b.get_profile(), job=job)
+
+        self.client.force_login(seeker_a)
+        response = self.client.get(self.url)
+
+        self.assertEqual(len(response.context["saved_jobs"]), 1)
+
+    def test_empty_state_message(self):
+        self.client.force_login(make_seeker())
+        response = self.client.get(self.url)
+        self.assertContains(response, "haven't saved")
+
+    def test_remove_button_removes_job_from_list(self):
+        employer = make_employer()
+        job = make_job(employer, title="Removable Role")
+        seeker = make_seeker()
+        SavedJob.objects.create(applicant=seeker.get_profile(), job=job)
+        self.client.force_login(seeker)
+
+        self.client.post(reverse("jobs:toggle_save", kwargs={"pk": job.pk}))
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, "Removable Role")             

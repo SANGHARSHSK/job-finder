@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Saved jobs · Job Finder{% endblock %}
+
+{% block content %}
+  <h1>Saved jobs</h1>
+
+  {% if saved_jobs %}
+    <table class="table">
+      <thead>
+        <tr><th>Job</th><th>Company</th><th>Saved</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for saved in saved_jobs %}
+          <tr>
+            <td><a href="{% url 'jobs:detail' pk=saved.job.pk %}">{{ saved.job.title }}</a></td>
+            <td>{{ saved.job.company.name }}</td>
+            <td>{{ saved.created_at|date:"M j, Y" }}</td>
+            <td>
+              <form method="post" action="{% url 'jobs:toggle_save' pk=saved.job.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-link p-0">Remove</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>You haven't saved any jobs yet. <a href="{% url 'jobs:list' %}">Browse jobs</a>.</p>
+  {% endif %}
+{% endblock %}

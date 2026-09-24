@@ -19,6 +19,7 @@
           <a href="{% url 'jobs:employer_job_list' %}">My jobs</a>
         {% elif user.is_job_seeker %}
           <a class="ms-auto" href="{% url 'applications:my_applications' %}">My applications</a>
+          <a href="{% url 'jobs:saved_jobs' %}">Saved jobs</a>
         {% endif %}
         <a {% if not user.is_employer and not user.is_job_seeker %}class="ms-auto"{% endif %} href="{% url 'accounts:profile' %}">Profile</a>
         <span>

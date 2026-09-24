@@ -3,10 +3,13 @@ from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 from django.urls import reverse_lazy
-from core.mixins import EmployerRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.views.decorators.http import require_POST
 
+from core.mixins import EmployerRequiredMixin, JobSeekerRequiredMixin
 from .forms import JobForm
-from .models import Job
+from .models import Job, SavedJob
 
 from django.core.paginator import Paginator
 from django.views.generic import DetailView, ListView
@@ -63,10 +66,44 @@ class JobDetailView(DetailView):
         if user.is_authenticated and user.is_job_seeker:
             from applications.models import Application  # local import avoids a circular import
 
+            applicant = user.get_profile()
             context["has_applied"] = Application.objects.filter(
-                job=self.object, applicant=user.get_profile()
+                job=self.object, applicant=applicant
+            ).exists()
+            context["is_saved"] = SavedJob.objects.filter(
+                job=self.object, applicant=applicant
             ).exists()
         return context
+
+@login_required
+@require_POST
+def toggle_save_job(request, pk):
+    if not request.user.is_job_seeker:
+        raise PermissionDenied
+
+    job = get_object_or_404(Job.objects.exclude(status=Job.Status.REMOVED), pk=pk)
+    applicant = request.user.get_profile()
+
+    saved_job = SavedJob.objects.filter(applicant=applicant, job=job).first()
+    if saved_job:
+        saved_job.delete()
+        messages.info(request, "Job removed from saved jobs.")
+    else:
+        SavedJob.objects.create(applicant=applicant, job=job)
+        messages.success(request, "Job saved.")
+
+    return redirect("jobs:detail", pk=job.pk)
+
+
+class SavedJobsListView(JobSeekerRequiredMixin, ListView):
+    template_name = "jobs/saved_jobs.html"
+    context_object_name = "saved_jobs"
+
+    def get_queryset(self):
+        return (
+            SavedJob.objects.filter(applicant=self.request.user.get_profile())
+            .select_related("job", "job__company")
+        )    
 
 class OwnerJobMixin(EmployerRequiredMixin):
     """Restrict create/edit/delete to jobs owned by the logged-in employer's company."""

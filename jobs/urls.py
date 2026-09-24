@@ -7,6 +7,8 @@ app_name = "jobs"
 urlpatterns = [
     path("jobs/", views.JobListView.as_view(), name="list"),
     path("jobs/<int:pk>/", views.JobDetailView.as_view(), name="detail"),
+    path("jobs/<int:pk>/save/", views.toggle_save_job, name="toggle_save"),
+    path("saved-jobs/", views.SavedJobsListView.as_view(), name="saved_jobs"),
     path("employer/jobs/", views.EmployerJobListView.as_view(), name="employer_job_list"),
     path(
         "employer/jobs/new/",

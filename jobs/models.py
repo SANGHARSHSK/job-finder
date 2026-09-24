@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.db.models import Q
 from companies.models import Company
 from core.models import TimeStampedModel
-
+from accounts.models import JobSeekerProfile
 from django.db.models import Q
 
 
@@ -70,4 +70,20 @@ class Job(TimeStampedModel):
     def is_open(self):
         return self.status == self.Status.OPEN
 
+class SavedJob(TimeStampedModel):
+    applicant = models.ForeignKey(
+        JobSeekerProfile, on_delete=models.CASCADE, related_name="saved_jobs"
+    )
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="saved_by")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["applicant", "job"], name="unique_saved_job_per_applicant"
+            )
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.applicant.user.username} saved {self.job.title}"
     
