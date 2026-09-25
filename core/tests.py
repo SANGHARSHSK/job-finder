@@ -64,3 +64,50 @@ class RoleMixinTests(TestCase):
             self.call(SeekerOnlyView, self.superuser)
         with self.assertRaises(PermissionDenied):
             self.call(EmployerOnlyView, self.superuser)
+
+
+class AdminSiteTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.superuser = User.objects.create_superuser(
+            "admin", "admin@example.com", "Str0ng-Pass-Phrase!"
+        )
+        cls.staff_seeker = User.objects.create_user(
+            "staffseeker", "staffseeker@example.com", "Str0ng-Pass-Phrase!",
+            role=User.Role.JOB_SEEKER, is_staff=True,
+        )
+        cls.plain_seeker = User.objects.create_user(
+            "plainseeker", "plainseeker@example.com", "Str0ng-Pass-Phrase!",
+            role=User.Role.JOB_SEEKER,
+        )
+
+    def test_non_staff_user_cannot_reach_admin(self):
+        self.client.force_login(self.plain_seeker)
+        response = self.client.get("/admin/", follow=True)
+        self.assertContains(response, "Log in", status_code=200)
+
+    def test_superuser_can_view_admin_index(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get("/admin/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_superuser_can_view_each_registered_changelist(self):
+        self.client.force_login(self.superuser)
+        changelist_urls = [
+            "/admin/accounts/user/",
+            "/admin/accounts/jobseekerprofile/",
+            "/admin/accounts/employerprofile/",
+            "/admin/companies/company/",
+            "/admin/jobs/job/",
+            "/admin/jobs/savedjob/",
+            "/admin/applications/application/",
+        ]
+        for url in changelist_urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+
+    def test_staff_user_without_permissions_is_denied(self):
+        self.client.force_login(self.staff_seeker)
+        response = self.client.get("/admin/accounts/user/")
+        self.assertEqual(response.status_code, 403)            
