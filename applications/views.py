@@ -7,12 +7,13 @@ from django.db import IntegrityError
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
-from django.views.generic import ListView
+from django.views.generic import DetailView, ListView
 
 from core.mixins import JobSeekerRequiredMixin
 from core.mixins import EmployerRequiredMixin
 from jobs.models import Job
-
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Count
 from .forms import ApplicationForm
 from .models import Application
 
@@ -47,12 +48,21 @@ def apply_to_job(request, pk):
                 messages.info(request, "You've already applied to this job.")
                 return redirect("jobs:detail", pk=job.pk)
             messages.success(request, "Your application has been submitted.")
-            return redirect("jobs:detail", pk=job.pk)
+            return redirect("applications:apply_success", pk=application.pk)
     else:
         form = ApplicationForm()
 
     return render(request, "applications/apply.html", {"form": form, "job": job})
 
+class ApplicationSuccessView(LoginRequiredMixin, DetailView):
+        model = Application
+        template_name = "applications/apply_success.html"
+        context_object_name = "application"
+
+        def get_queryset(self):
+            # Scoped to the logged-in applicant's own applications, same
+            # ownership pattern as everywhere else — a guessed pk 404s.
+            return Application.objects.filter(applicant=self.request.user.get_profile())
 
 @login_required
 def resume_download(request, pk):
@@ -84,6 +94,18 @@ class MyApplicationsListView(JobSeekerRequiredMixin, ListView):
             .select_related("job", "job__company")
         )
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        counts_by_status = {
+            row["status"]: row["count"]
+            for row in self.get_queryset().values("status").annotate(count=Count("id"))
+        }
+        context["status_summary"] = [
+            (value, label, counts_by_status.get(value, 0))
+            for value, label in Application.Status.choices
+            if counts_by_status.get(value, 0) > 0
+        ]
+        return context
 
 @login_required
 @require_POST

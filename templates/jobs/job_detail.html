@@ -1,53 +1,88 @@
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}{{ job.title }} · Job Finder{% endblock %}
 
+{% block description %}{{ job.title }} at {{ job.company.name }} in {{ job.location }}. View role details and apply on Job Finder.{% endblock %}
+
 {% block content %}
-  <h1>{{ job.title }}</h1>
-  <p class="text-muted">
-    <a href="{% url 'companies:detail' pk=job.company.pk %}">{{ job.company.name }}</a>
-    · {{ job.location }} · {{ job.get_employment_type_display }} · {{ job.get_experience_level_display }}
-  </p>
+  <div class="job-detail">
+    <div class="job-detail__main">
+      <p class="job-detail__breadcrumb"><a href="{% url 'jobs:list' %}">← Back to job listings</a></p>
 
-  {% if not job.is_open %}
-    <p class="alert alert-secondary">This job is no longer accepting applications.</p>
-  {% endif %}
+      <header class="job-detail__header">
+        <h1>{{ job.title }}</h1>
+        <p class="job-detail__meta job-card__meta">
+          <span class="job-card__meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4 8 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>
+            <a href="{% url 'companies:detail' pk=job.company.pk %}">{{ job.company.name }}</a>
+          </span>
+          <span class="job-card__meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            {{ job.location }}
+          </span>
+          <span>Posted {{ job.created_at|naturaltime }}</span>
+        </p>
+        <div class="job-card__badges">
+          <span class="badge badge--neutral">{{ job.get_employment_type_display }}</span>
+          <span class="badge badge--neutral">{{ job.get_experience_level_display }}</span>
+          {% if job.salary_min or job.salary_max %}
+            <span class="badge badge--primary">
+              {% if job.salary_min and job.salary_max %}{{ job.salary_min }}–{{ job.salary_max }}
+              {% elif job.salary_min %}From {{ job.salary_min }}
+              {% else %}Up to {{ job.salary_max }}{% endif %}
+            </span>
+          {% endif %}
+        </div>
+      </header>
 
-    {% if user.is_authenticated and user.is_job_seeker %}
-    <form method="post" action="{% url 'jobs:toggle_save' pk=job.pk %}" class="d-inline">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-outline-secondary btn-sm">
-        {% if is_saved %}Remove from saved jobs{% else %}Save job{% endif %}
-      </button>
-    </form>
-  {% endif %}
+      {% if not job.is_open %}
+        <p class="alert alert-secondary">This job is no longer accepting applications.</p>
+      {% endif %}
 
-  {% if user.is_authenticated and user.is_job_seeker %}
-    {% if has_applied %}
-      <p class="alert alert-info">You've already applied to this job.</p>
-    {% elif job.is_open %}
-      <p><a href="{% url 'applications:apply' pk=job.pk %}" class="btn btn-primary">Apply now</a></p>
-    {% endif %}
-  {% elif not user.is_authenticated %}
-    <p><a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in as a job seeker to apply</a></p>
-  {% endif %}
+      <section class="job-detail__section">
+        <h2>Description</h2>
+        <p>{{ job.description|linebreaksbr }}</p>
+      </section>
 
-  <h2 class="h5">Description</h2>
-  <p>{{ job.description|linebreaksbr }}</p>
+      {% if job.requirements %}
+        <section class="job-detail__section">
+          <h2>Requirements</h2>
+          <p>{{ job.requirements|linebreaksbr }}</p>
+        </section>
+      {% endif %}
+    </div>
 
-  {% if job.requirements %}
-    <h2 class="h5">Requirements</h2>
-    <p>{{ job.requirements|linebreaksbr }}</p>
-  {% endif %}
-    {% if user.is_authenticated and user.is_job_seeker %}
-    {% if has_applied %}
-      <p class="alert alert-info">You've already applied to this job.</p>
-    {% elif job.is_open %}
-      <p><a href="{% url 'applications:apply' pk=job.pk %}" class="btn btn-primary">Apply now</a></p>
-    {% endif %}
-  {% elif not user.is_authenticated %}
-    <p><a href="{% url 'accounts:login' %}?next={{ request.path }}">Log in as a job seeker to apply</a></p>
-  {% endif %}
+    <aside class="job-detail__sidebar">
+      <div class="card job-detail__actions">
+        {% if user.is_authenticated and user.is_job_seeker %}
+          {% if has_applied %}
+            <p class="alert alert-info mb-2">You've already applied to this job.</p>
+          {% elif job.is_open %}
+            <a href="{% url 'applications:apply' pk=job.pk %}" class="btn btn-primary w-100 mb-2">Apply now</a>
+          {% endif %}
+          <form method="post" action="{% url 'jobs:toggle_save' pk=job.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-secondary w-100">
+              {% if is_saved %}Remove from saved jobs{% else %}Save job{% endif %}
+            </button>
+          </form>
+        {% elif not user.is_authenticated %}
+          <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-primary w-100">
+            Log in to apply
+          </a>
+        {% endif %}
+      </div>
 
-  <p><a href="{% url 'jobs:list' %}">Back to job listings</a></p>
+      <div class="card job-detail__company">
+        <h3 class="h5">About {{ job.company.name }}</h3>
+        <dl class="job-detail__company-facts">
+          {% if job.company.industry %}<dt>Industry</dt><dd>{{ job.company.industry }}</dd>{% endif %}
+          {% if job.company.location %}<dt>Location</dt><dd>{{ job.company.location }}</dd>{% endif %}
+          {% if job.company.company_size %}<dt>Size</dt><dd>{{ job.company.get_company_size_display }}</dd>{% endif %}
+        </dl>
+        <a href="{% url 'companies:detail' pk=job.company.pk %}">View company profile</a>
+      </div>
+    </aside>
+  </div>
 {% endblock %}

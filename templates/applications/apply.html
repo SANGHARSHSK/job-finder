@@ -2,14 +2,54 @@
 
 {% block title %}Apply · {{ job.title }} · Job Finder{% endblock %}
 
-{% block content %}
-  <h1>Apply for {{ job.title }}</h1>
-  <p class="text-muted">{{ job.company.name }} · {{ job.location }}</p>
+{% block description %}Apply for {{ job.title }} at {{ job.company.name }} on Job Finder.{% endblock %}
 
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form }}
-    <button type="submit" class="btn btn-primary">Submit application</button>
-    <a href="{% url 'jobs:detail' pk=job.pk %}">Cancel</a>
-  </form>
+{% block content %}
+  <div class="apply-page">
+    <p><a href="{% url 'jobs:detail' pk=job.pk %}">← Back to job</a></p>
+    <h1>Apply for {{ job.title }}</h1>
+    <p class="text-muted mb-4">{{ job.company.name }} · {{ job.location }}</p>
+
+    <div class="card apply-page__applicant">
+      <h2 class="h6 mb-2">Applying as</h2>
+      <dl class="job-detail__company-facts mb-1">
+        <dt>Name</dt><dd>{{ user.get_full_name|default:user.username }}</dd>
+        <dt>Email</dt><dd><a href="mailto:{{ user.email }}">{{ user.email }}</a></dd>
+        {% if user.get_profile.phone %}<dt>Phone</dt><dd><a href="tel:{{ user.get_profile.phone }}">{{ user.get_profile.phone }}</a></dd>{% endif %}
+      </dl>
+      <a href="{% url 'accounts:profile_edit' %}">Edit your profile</a>
+    </div>
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="apply-page__form">
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label for="{{ form.resume.id_for_label }}">Resume</label>
+        {{ form.resume }}
+        <span class="form-text">PDF, DOC, or DOCX — up to 5 MB.</span>
+        {% if form.resume.errors %}
+          <ul class="errorlist">
+            {% for error in form.resume.errors %}<li>{{ error }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="{{ form.cover_letter.id_for_label }}">Cover letter <span class="text-muted">(optional)</span></label>
+        {{ form.cover_letter }}
+        {% if form.cover_letter.errors %}
+          <ul class="errorlist">
+            {% for error in form.cover_letter.errors %}<li>{{ error }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary">Submit application</button>
+      <a href="{% url 'jobs:detail' pk=job.pk %}" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+  </div>
 {% endblock %}

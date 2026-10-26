@@ -6,7 +6,10 @@ from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.views.decorators.http import require_POST
+from datetime import timedelta
 
+from django.db.models import Q
+from django.utils import timezone
 from core.mixins import EmployerRequiredMixin, JobSeekerRequiredMixin
 from .forms import JobForm
 from .models import Job, SavedJob
@@ -20,6 +23,14 @@ class JobListView(ListView):
     template_name = "jobs/job_list.html"
     context_object_name = "jobs"
     paginate_by = 10
+
+    POSTED_CHOICES = [
+        ("", "Any time"),
+        ("1", "Last 24 hours"),
+        ("3", "Last 3 days"),
+        ("7", "Last 7 days"),
+        ("30", "Last 30 days"),
+    ]
 
     def get_queryset(self):
         queryset = Job.objects.select_related("company").open()
@@ -37,6 +48,20 @@ class JobListView(ListView):
         if experience_level in Job.ExperienceLevel.values:
             queryset = queryset.filter(experience_level=experience_level)
 
+        min_salary = self.request.GET.get("min_salary", "").strip()
+        if min_salary.isdigit():
+            min_salary = int(min_salary)
+            queryset = queryset.filter(
+                Q(salary_max__gte=min_salary) | Q(salary_min__gte=min_salary)
+            )
+
+        posted_days = {"1": 1, "3": 3, "7": 7, "30": 30}.get(
+            self.request.GET.get("posted", "")
+        )
+        if posted_days:
+            cutoff = timezone.now() - timedelta(days=posted_days)
+            queryset = queryset.filter(created_at__gte=cutoff)
+
         sort = self.request.GET.get("sort", "newest")
         if sort == "oldest":
             queryset = queryset.order_by("created_at")
@@ -49,7 +74,20 @@ class JobListView(ListView):
         context = super().get_context_data(**kwargs)
         context["employment_types"] = Job.EmploymentType.choices
         context["experience_levels"] = Job.ExperienceLevel.choices
+        context["posted_choices"] = self.POSTED_CHOICES
         context["current_filters"] = self.request.GET
+
+        user = self.request.user
+        if user.is_authenticated and user.is_job_seeker:
+            applicant = user.get_profile()
+            saved_ids = set(
+                SavedJob.objects.filter(
+                    applicant=applicant, job__in=context["jobs"]
+                ).values_list("job_id", flat=True)
+            )
+            for job in context["jobs"]:
+                job.is_saved = job.pk in saved_ids
+
         return context
 
 

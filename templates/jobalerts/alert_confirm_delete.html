@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Delete job alert | Job Finder{% endblock %}
+{% block description %}Confirm deletion of this saved job alert.{% endblock %}
+
+{% block content %}
+  <div class="auth-page auth-page--narrow">
+    <h1>Delete this alert?</h1>
+    <p>Your “{{ object.role_title }}” alert and its saved matches will be removed.</p>
+    <form method="post">
+      {% csrf_token %}
+      <button class="btn btn-danger" type="submit">Delete alert</button>
+      <a class="btn btn-outline-secondary" href="{% url 'jobalerts:list' %}">Cancel</a>
+    </form>
+  </div>
+{% endblock %}

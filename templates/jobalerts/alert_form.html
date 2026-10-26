@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Edit job alert{% else %}Create a job alert{% endif %} | Job Finder{% endblock %}
+{% block description %}Set the target role, skills, and location for your personalized job alert.{% endblock %}
+
+{% block content %}
+  <div class="auth-page alert-form-page">
+    <p class="page-heading__eyebrow">Personalized search</p>
+    <h1>{% if object %}Edit your alert{% else %}Create a job alert{% endif %}</h1>
+    <p class="text-muted">Describe the role you want. Results show the listing details provided by each connected source and link to its application page.</p>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}
+        <div class="mb-3 {% if field.field.widget.input_type == 'checkbox' %}alert-form-page__checkbox{% endif %}">
+          {% if field.field.widget.input_type == 'checkbox' %}
+            <label for="{{ field.id_for_label }}">{{ field }} {{ field.label }}</label>
+          {% else %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+          {% endif %}
+          {% if field.help_text %}<span class="form-text">{{ field.help_text }}</span>{% endif %}
+          {% if field.errors %}<ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      {% endfor %}
+      <div class="alert alert-info" role="note">Alerts run when the connected provider sync command is scheduled. Timing depends on that schedule and the provider’s API limits. Email is optional; in-app matches remain available on this page.</div>
+      <button class="btn btn-primary" type="submit">Save alert</button>
+      <a class="btn btn-outline-secondary" href="{% url 'jobalerts:list' %}">Cancel</a>
+    </form>
+  </div>
+{% endblock %}

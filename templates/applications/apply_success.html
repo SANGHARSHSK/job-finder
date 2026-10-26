@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Application submitted · Job Finder{% endblock %}
+
+{% block description %}Your application for {{ application.job.title }} has been submitted successfully.{% endblock %}
+
+{% block content %}
+  <div class="confirmation-state">
+    <p class="confirmation-state__eyebrow">Application submitted</p>
+    <h1>You've applied to {{ application.job.title }}</h1>
+    <p class="text-muted">
+      {{ application.job.company.name }} · Submitted {{ application.created_at|date:"M j, Y" }}
+    </p>
+    <p>
+      The employer will review your application and update its status. You can track
+      progress any time from <strong>My applications</strong>.
+    </p>
+    <div class="confirmation-state__actions">
+      <a href="{% url 'applications:my_applications' %}" class="btn btn-primary">View my applications</a>
+      <a href="{% url 'jobs:list' %}" class="btn btn-outline-secondary">Browse more jobs</a>
+    </div>
+  </div>
+{% endblock %}

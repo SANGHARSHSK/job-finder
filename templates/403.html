@@ -2,8 +2,10 @@
 
 {% block title %}Access denied · Job Finder{% endblock %}
 
+{% block description %}You do not have permission to view this page. Return to Job Finder or browse open roles.{% endblock %}
+
 {% block content %}
   <h1>Access denied</h1>
   <p>You don't have permission to view this page.</p>
-  <p><a href="{% url 'core:home' %}">Back to the home page</a></p>
+  <p class="error-page__actions"><a class="btn btn-primary" href="{% url 'core:home' %}">Home</a> <a class="btn btn-outline-secondary" href="{% url 'jobs:list' %}">Browse jobs</a></p>
 {% endblock %}

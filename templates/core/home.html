@@ -1,14 +1,86 @@
 {% extends "base.html" %}
 
+{% block title %}Find Your Next Job | Job Finder{% endblock %}
+{% block description %}Search open jobs by role or location, explore companies, and discover your next career move with Job Finder.{% endblock %}
+
 {% block content %}
-  <h1>Welcome to Job Finder</h1>
-  {% if user.is_authenticated %}
-    <p>Hello, {{ user.first_name|default:user.username }}.</p>
-  {% else %}
-    <p>Find your next role or your next hire.</p>
-    <p>
-      <a href="{% url 'accounts:register' %}">Create an account</a> or
-      <a href="{% url 'accounts:login' %}">log in</a>.
-    </p>
-  {% endif %}
+  <div class="hero-banner">
+    <div class="container">
+      <p class="hero-banner__eyebrow">A more considered job search</p>
+      <h1>Find your next role, or your next hire</h1>
+      <p class="hero-banner__sub">Search open positions from companies building real products.</p>
+
+      <form method="get" action="{% url 'jobs:list' %}" class="hero-search" role="search">
+        <div class="hero-search__field">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" name="q" aria-label="Keyword">
+        </div>
+        <div class="hero-search__field">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <input type="text" name="location" aria-label="Location">
+        </div>
+        <button type="submit" class="btn btn-primary hero-search__button">Search jobs</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="home-content">
+    <section class="home-stats" aria-label="Platform statistics">
+      <div class="home-stats__item">
+        <span class="home-stats__number">{{ open_job_count }}</span>
+        <span class="home-stats__label">Open position{{ open_job_count|pluralize }}</span>
+      </div>
+      <div class="home-stats__item">
+        <span class="home-stats__number">{{ company_count }}</span>
+        <span class="home-stats__label">Compan{{ company_count|pluralize:"y,ies" }} hiring</span>
+      </div>
+    </section>
+
+    <section class="home-recent">
+      <div class="home-recent__header">
+        <h2>Recent jobs</h2>
+        <a href="{% url 'jobs:list' %}">View all jobs</a>
+      </div>
+
+      {% if recent_jobs %}
+        {% for job in recent_jobs %}
+          <article class="card job-card">
+            <div class="job-card__main">
+              <h3 class="job-card__title"><a href="{% url 'jobs:detail' pk=job.pk %}">{{ job.title }}</a></h3>
+              <p class="job-card__meta">
+                <span class="job-card__meta-item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4 8 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>
+                  {{ job.company.name }}
+                </span>
+                <span class="job-card__meta-item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  {{ job.location }}
+                </span>
+              </p>
+              <div class="job-card__badges">
+                <span class="badge badge--neutral">{{ job.get_employment_type_display }}</span>
+                <span class="badge badge--neutral">{{ job.get_experience_level_display }}</span>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <p>No jobs posted yet. Check back soon.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    {% if user.is_employer or not user.is_authenticated %}<section class="home-employer">
+      <div class="home-employer__text">
+        <h2>Hiring?</h2>
+        <p class="text-muted">Post a job and start reviewing applicants directly.</p>
+      </div>
+      {% if user.is_authenticated and user.is_employer %}
+        <a href="{% url 'jobs:create' %}" class="btn btn-outline-secondary">Post a job</a>
+      {% elif not user.is_authenticated %}
+        <a href="{% url 'accounts:register' %}" class="btn btn-outline-secondary">Register as an employer</a>
+      {% endif %}
+    </section>{% endif %}
+  </div>
 {% endblock %}

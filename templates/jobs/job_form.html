@@ -2,6 +2,8 @@
 
 {% block title %}{% if object %}Edit job{% else %}Post a job{% endif %} · Job Finder{% endblock %}
 
+{% block description %}Create or update a job listing for your company on Job Finder.{% endblock %}
+
 {% block content %}
   <h1>{% if object %}Edit job{% else %}Post a job{% endif %}</h1>
   <form method="post">

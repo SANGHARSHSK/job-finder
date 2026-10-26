@@ -2,40 +2,49 @@
 
 {% block title %}My profile · Job Finder{% endblock %}
 
-{% block content %}
-  <h1>My profile</h1>
+{% block description %}View and manage your Job Finder account and professional profile details.{% endblock %}
 
-  <dl>
-    <dt>Name</dt>
-    <dd>{{ user.get_full_name|default:"—" }}</dd>
-    <dt>Username</dt>
-    <dd>{{ user.username }}</dd>
-    <dt>Email</dt>
-    <dd>{{ user.email }}</dd>
-    <dt>Account type</dt>
-    <dd>{{ user.get_role_display|default:"None (administrator account)" }}</dd>
+{% block content %}
+  <div class="profile-page">
+    <h1>My profile</h1>
+
+    <section class="card profile-section">
+      <h2 class="h6">Account</h2>
+      <dl class="job-detail__company-facts mb-0">
+        <dt>Name</dt><dd>{{ user.get_full_name|default:"—" }}</dd>
+        <dt>Username</dt><dd>{{ user.username }}</dd>
+        <dt>Email</dt><dd><a href="mailto:{{ user.email }}">{{ user.email }}</a></dd>
+        <dt>Account type</dt><dd>{{ user.get_role_display|default:"None (administrator account)" }}</dd>
+      </dl>
+    </section>
 
     {% if user.is_job_seeker %}
-      <dt>Phone</dt>
-      <dd>{{ profile.phone|default:"—" }}</dd>
-      <dt>Location</dt>
-      <dd>{{ profile.location|default:"—" }}</dd>
-      <dt>Headline</dt>
-      <dd>{{ profile.headline|default:"—" }}</dd>
-      <dt>Bio</dt>
-      <dd>{{ profile.bio|default:"—"|linebreaksbr }}</dd>
-      <dt>Skills</dt>
-      <dd>{{ profile.skills|default:"—"|linebreaksbr }}</dd>
+      <section class="card profile-section">
+        <h2 class="h6">Professional details</h2>
+        <dl class="job-detail__company-facts mb-0">
+          <dt>Phone</dt><dd>{% if profile.phone %}<a href="tel:{{ profile.phone }}">{{ profile.phone }}</a>{% else %}—{% endif %}</dd>
+          <dt>Location</dt><dd>{{ profile.location|default:"—" }}</dd>
+          <dt>Headline</dt><dd>{{ profile.headline|default:"—" }}</dd>
+          <dt>Skills</dt><dd>{{ profile.skills|default:"—"|linebreaksbr }}</dd>
+        </dl>
+      </section>
+      <section class="card profile-section">
+        <h2 class="h6">Summary</h2>
+        <p class="mb-0">{{ profile.bio|default:"—"|linebreaksbr }}</p>
+      </section>
     {% elif user.is_employer %}
-      <dt>Job title</dt>
-      <dd>{{ profile.job_title|default:"—" }}</dd>
-      <dt>Phone</dt>
-      <dd>{{ profile.phone|default:"—" }}</dd>
+      <section class="card profile-section">
+        <h2 class="h6">Professional details</h2>
+        <dl class="job-detail__company-facts mb-0">
+          <dt>Job title</dt><dd>{{ profile.job_title|default:"—" }}</dd>
+          <dt>Phone</dt><dd>{% if profile.phone %}<a href="tel:{{ profile.phone }}">{{ profile.phone }}</a>{% else %}—{% endif %}</dd>
+        </dl>
+      </section>
     {% endif %}
-  </dl>
 
-  <p>
-    {% if profile %}<a href="{% url 'accounts:profile_edit' %}">Edit profile</a> ·{% endif %}
-    <a href="{% url 'accounts:password_change' %}">Change password</a>
-  </p>
+    <p class="profile-page__actions">
+      {% if profile %}<a href="{% url 'accounts:profile_edit' %}" class="btn btn-outline-secondary btn-sm">Edit profile</a>{% endif %}
+      <a href="{% url 'accounts:password_change' %}" class="btn btn-outline-secondary btn-sm">Change password</a>
+    </p>
+  </div>
 {% endblock %}

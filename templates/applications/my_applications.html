@@ -2,35 +2,64 @@
 
 {% block title %}My applications · Job Finder{% endblock %}
 
+{% block description %}Track the status of your job applications and access submitted resumes.{% endblock %}
+
 {% block content %}
   <h1>My applications</h1>
 
+    {% if status_summary %}
+    <div class="status-summary">
+      {% for value, label, count in status_summary %}
+        <span class="badge
+          {% if value == 'hired' %}badge--success
+          {% elif value == 'rejected' %}badge--danger
+          {% elif value == 'shortlisted' or value == 'under_review' %}badge--primary
+          {% else %}badge--neutral{% endif %}">
+          {{ label }}: {{ count }}
+        </span>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   {% if applications %}
-    <table class="table">
-      <thead>
-        <tr><th>Job</th><th>Company</th><th>Status</th><th>Applied</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for application in applications %}
-          <tr>
-            <td><a href="{% url 'jobs:detail' pk=application.job.pk %}">{{ application.job.title }}</a></td>
-            <td>{{ application.job.company.name }}</td>
-            <td>{{ application.get_status_display }}</td>
-            <td>{{ application.created_at|date:"M j, Y" }}</td>
-            <td>
-              <a href="{% url 'applications:resume_download' pk=application.pk %}">Resume</a>
-              {% if application.can_withdraw %}
-                · <form method="post" action="{% url 'applications:withdraw' pk=application.pk %}" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-link p-0">Withdraw</button>
-                  </form>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr><th>Job</th><th>Company</th><th>Status</th><th>Applied</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for application in applications %}
+            <tr>
+              <td><a href="{% url 'jobs:detail' pk=application.job.pk %}">{{ application.job.title }}</a></td>
+              <td>{{ application.job.company.name }}</td>
+              <td>
+                <span class="badge
+                  {% if application.status == 'hired' %}badge--success
+                  {% elif application.status == 'rejected' %}badge--danger
+                  {% elif application.status == 'shortlisted' or application.status == 'under_review' %}badge--primary
+                  {% else %}badge--neutral{% endif %}">
+                  {{ application.get_status_display }}
+                </span>
+              </td>
+              <td>{{ application.created_at|date:"M j, Y" }}</td>
+              <td>
+                <a href="{% url 'applications:resume_download' pk=application.pk %}">Resume</a>
+                {% if application.can_withdraw %}
+                  · <form method="post" action="{% url 'applications:withdraw' pk=application.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-link p-0">Withdraw</button>
+                    </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   {% else %}
-    <p>You haven't applied to any jobs yet. <a href="{% url 'jobs:list' %}">Browse jobs</a>.</p>
+    <div class="empty-state">
+      <p>You haven't applied to any jobs yet.</p>
+      <a href="{% url 'jobs:list' %}">Browse jobs</a>
+    </div>
   {% endif %}
 {% endblock %}

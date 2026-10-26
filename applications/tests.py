@@ -114,6 +114,7 @@ class ApplyViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 403)
 
+
     def test_job_seeker_can_apply(self):
         seeker = make_seeker()
         self.client.force_login(seeker)
@@ -122,19 +123,22 @@ class ApplyViewTests(TestCase):
             self.url, {"resume": pdf_file(), "cover_letter": "I'd love this role."}
         )
 
-        self.assertRedirects(response, reverse("jobs:detail", kwargs={"pk": self.job.pk}))
         application = Application.objects.get(job=self.job, applicant=seeker.get_profile())
+        self.assertRedirects(
+            response, reverse("applications:apply_success", kwargs={"pk": application.pk})
+        )
         self.assertEqual(application.status, Application.Status.APPLIED)
         self.assertEqual(application.cover_letter, "I'd love this role.")
-
     def test_cover_letter_is_optional(self):
         seeker = make_seeker()
         self.client.force_login(seeker)
 
         response = self.client.post(self.url, {"resume": pdf_file()})
 
-        self.assertRedirects(response, reverse("jobs:detail", kwargs={"pk": self.job.pk}))
-        self.assertTrue(Application.objects.filter(job=self.job, applicant=seeker.get_profile()).exists())
+        application = Application.objects.get(job=self.job, applicant=seeker.get_profile())
+        self.assertRedirects(
+            response, reverse("applications:apply_success", kwargs={"pk": application.pk})
+        )
 
     def test_duplicate_application_is_blocked_with_message(self):
         seeker = make_seeker()
@@ -454,4 +458,4 @@ class UpdateApplicationStatusTests(TestCase):
         response = self.client.post(self.url, {"status": Application.Status.SHORTLISTED}, follow=True)
 
         self.application.refresh_from_db()
-        self.assertEqual(self.application.status, Application.Status.WITHDRAWN)        
+        self.assertEqual(self.application.status, Application.Status.WITHDRAWN)

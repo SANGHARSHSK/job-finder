@@ -2,12 +2,45 @@
 
 {% block title %}Register · Job Finder{% endblock %}
 
+{% block description %}Create a Job Finder account to apply for jobs or post openings for your company.{% endblock %}
+
 {% block content %}
-  <h1>Create your account</h1>
-  <form method="post">
-    {% csrf_token %}
-    {{ form }}
-    <button type="submit" class="btn btn-primary">Register</button>
-  </form>
-  <p class="mt-3">Already have an account? <a href="{% url 'accounts:login' %}">Log in</a>.</p>
+  <div class="auth-page">
+    <h1>Create your account</h1>
+
+    <form method="post" class="auth-form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="mb-3">
+        <span class="form-label">I am a</span>
+        <div class="role-choice">
+          {% for radio in form.role %}
+            <label class="role-choice__option">{{ radio.tag }} {{ radio.choice_label }}</label>
+          {% endfor %}
+        </div>
+        {% if form.role.errors %}
+          <ul class="errorlist">{% for error in form.role.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+
+      {% for field in form %}
+        {% if field.name != "role" %}
+          <div class="mb-3">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<span class="form-text">{{ field.help_text|safe }}</span>{% endif %}
+            {% if field.errors %}
+              <ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      <button type="submit" class="btn btn-primary">Create account</button>
+    </form>
+    <p class="mt-3">Already have an account? <a href="{% url 'accounts:login' %}">Log in</a>.</p>
+  </div>
 {% endblock %}

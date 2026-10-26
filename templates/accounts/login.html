@@ -2,14 +2,31 @@
 
 {% block title %}Log in · Job Finder{% endblock %}
 
+{% block description %}Sign in to manage your Job Finder profile, saved jobs, applications, or company listings.{% endblock %}
+
 {% block content %}
-  <h1>Log in</h1>
-  <form method="post">
-    {% csrf_token %}
-    {{ form }}
-    <input type="hidden" name="next" value="{{ next }}">
-    <button type="submit" class="btn btn-primary">Log in</button>
-  </form>
-  <p class="mt-3">New here? <a href="{% url 'accounts:register' %}">Create an account</a>.</p>
-    <p><a href="{% url 'accounts:password_reset' %}">Forgot your password?</a></p>
+  <div class="auth-page auth-page--narrow">
+    <h1>Log in</h1>
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+            <ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="btn btn-primary w-100">Log in</button>
+    </form>
+
+    <p class="mt-3"><a href="{% url 'accounts:password_reset' %}">Forgot your password?</a></p>
+    <p>New here? <a href="{% url 'accounts:register' %}">Create an account</a>.</p>
+  </div>
 {% endblock %}

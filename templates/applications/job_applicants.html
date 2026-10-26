@@ -2,6 +2,8 @@
 
 {% block title %}Applicants · {{ job.title }} · Job Finder{% endblock %}
 
+{% block description %}Review applicants and update application statuses for {{ job.title }}.{% endblock %}
+
 {% block content %}
   <h1>Applicants for {{ job.title }}</h1>
   <p><a href="{% url 'jobs:employer_job_list' %}">Back to my jobs</a></p>

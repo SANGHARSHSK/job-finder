@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Discover jobs | Job Finder{% endblock %}
+{% block description %}Explore external job listings matching your search and open the source listing to apply.{% endblock %}
+
+{% block content %}
+  <header class="page-heading">
+    <div>
+      <p class="page-heading__eyebrow">More opportunities</p>
+      <h1>Discover jobs</h1>
+      <p class="text-muted">Listings from connected providers. Apply directly on the source site.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'jobalerts:list' %}">Manage job alerts</a>
+  </header>
+
+  <form method="get" class="external-job-search" role="search">
+    <label class="visually-hidden" for="external-job-query">Search external jobs</label>
+    <input id="external-job-query" type="search" name="q" value="{{ search_query }}" aria-label="Search external jobs">
+    <button class="btn btn-primary" type="submit">Search</button>
+  </form>
+
+  {% if external_jobs %}
+    <div class="external-job-list">
+      {% for job in external_jobs %}
+        <article class="external-job-card">
+          <div class="external-job-card__body">
+            <div class="external-job-card__heading">
+              <h2><a href="{{ job.source_url }}" target="_blank" rel="noopener noreferrer">{{ job.title }}</a></h2>
+              <span class="badge badge--primary">{{ job.provider|title }}</span>
+            </div>
+            <p class="external-job-card__meta">
+              {% if job.company %}<span>{{ job.company }}</span>{% endif %}
+              {% if job.location %}<span>{{ job.location }}</span>{% endif %}
+              {% if job.employment_type %}<span>{{ job.employment_type }}</span>{% endif %}
+              {% if job.salary %}<span>{{ job.salary }}</span>{% endif %}
+              {% if job.source_updated_at %}<span>Updated {{ job.source_updated_at|date:"M j, Y" }}</span>{% endif %}
+            </p>
+            {% if job.snippet %}<p class="external-job-card__snippet">{{ job.snippet|striptags|truncatewords:55 }}</p>{% endif %}
+            <p class="external-job-card__source">{% if job.source_name %}Found on {{ job.source_name }} via {{ job.provider|title }}{% else %}Source: {{ job.provider|title }}{% endif %}</p>
+          </div>
+          <a class="btn btn-outline-secondary" href="{{ job.source_url }}" target="_blank" rel="noopener noreferrer">View and apply</a>
+        </article>
+      {% endfor %}
+    </div>
+    {% if is_paginated %}
+      <nav aria-label="External job pagination" class="mt-4">
+        <ul class="pagination">
+          {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a></li>{% endif %}
+          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a></li>{% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <h2>No external jobs yet</h2>
+      {% if provider_configured %}
+        <p>No fresh listings match your active alerts yet. Results appear after the provider sync runs.</p>
+      {% else %}
+        <p>A regional provider API key and endpoint are needed before external listings can be fetched.</p>
+      {% endif %}
+      <a href="{% url 'jobalerts:create' %}">Create a job alert</a>
+    </div>
+  {% endif %}
+{% endblock %}

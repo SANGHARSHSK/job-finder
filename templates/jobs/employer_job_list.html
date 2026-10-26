@@ -2,12 +2,14 @@
 
 {% block title %}My jobs · Job Finder{% endblock %}
 
+{% block description %}Manage your company’s job listings and review applicants on Job Finder.{% endblock %}
+
 {% block content %}
   <h1>My jobs</h1>
   <p><a href="{% url 'jobs:create' %}" class="btn btn-primary">Post a new job</a></p>
 
   {% if jobs %}
-    <table class="table">
+    <div class="table-responsive"><table class="table">
       <thead>
         <tr><th>Title</th><th>Location</th><th>Status</th><th>Posted</th><th></th></tr>
       </thead>
@@ -26,7 +28,7 @@
           </tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   {% else %}
     <p>You haven't posted any jobs yet.</p>
   {% endif %}

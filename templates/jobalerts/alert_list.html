@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}My job alerts | Job Finder{% endblock %}
+{% block description %}Create and manage role and skill based job alerts on Job Finder.{% endblock %}
+
+{% block content %}
+  <header class="page-heading">
+    <div>
+      <p class="page-heading__eyebrow">Personalized search</p>
+      <h1>My job alerts</h1>
+      <p class="text-muted">Choose the roles and skills you want to hear about.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'jobalerts:create' %}">Create alert</a>
+  </header>
+
+  {% if alerts %}
+    <div class="alert-list">
+      {% for alert in alerts %}
+        <section class="alert-card">
+          <div class="alert-card__header">
+            <div>
+              <h2>{{ alert.role_title }}</h2>
+              <p class="text-muted mb-0">{% if alert.location %}{{ alert.location }}{% else %}Any location{% endif %}{% if alert.remote_only %} · Remote only{% endif %}{% if alert.employment_type %} · {{ alert.get_employment_type_display }}{% endif %}{% if alert.min_salary %} · From {{ alert.min_salary }}{% endif %}</p>
+            </div>
+            <span class="badge {% if alert.is_active %}badge--success{% else %}badge--neutral{% endif %}">{% if alert.is_active %}Active{% else %}Paused{% endif %}</span>
+          </div>
+          <p><strong>Skills:</strong> {{ alert.skills }}</p>
+          {% if alert.role_description %}<p class="alert-card__description">{{ alert.role_description|truncatewords:40 }}</p>{% endif %}
+          <div class="alert-card__actions">
+            <span class="text-muted">{{ alert.get_frequency_display }}{% if alert.email_enabled %} · Email on{% else %} · Email off{% endif %}</span>
+            <span><a href="{% url 'jobalerts:update' pk=alert.pk %}">Edit</a> · <a href="{% url 'jobalerts:delete' pk=alert.pk %}">Delete</a></span>
+          </div>
+          {% with matches=alert.matches.all %}
+            {% if matches %}
+              <div class="alert-card__matches">
+                <h3>Recent matches</h3>
+                {% for match in matches|slice:":5" %}
+                  <article class="alert-match">
+                    <div>
+                      <h4><a href="{{ match.job.source_url }}" target="_blank" rel="noopener noreferrer">{{ match.job.title }}</a></h4>
+                      <p>{{ match.job.company|default:"Company not listed" }} · {{ match.job.location|default:"Location not listed" }}</p>
+                      {% if match.match_reasons %}<small>{{ match.match_reasons|join:", " }}</small>{% endif %}
+                      {% if match.job.snippet %}<p class="alert-match__snippet">{{ match.job.snippet|striptags|truncatewords:30 }}</p>{% endif %}
+                    </div>
+                    <span class="badge badge--primary">{{ match.score }}% match</span>
+                  </article>
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endwith %}
+        </section>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h2>Start with one role</h2>
+      <p>Add a target title and skills. We’ll check connected job sources for matches.</p>
+      <a class="btn btn-primary" href="{% url 'jobalerts:create' %}">Create your first alert</a>
+    </div>
+  {% endif %}
+{% endblock %}
