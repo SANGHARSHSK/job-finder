@@ -4,7 +4,7 @@ This Django app is configured for a Linux WSGI host with PostgreSQL, HTTPS, Whit
 
 ## Temporary interview demo on Render
 
-The repository includes `render.yaml` for a temporary Render deployment. Connect the GitHub repository to Render and create a Blueprint from that file. Render creates the web service and PostgreSQL database, generates the Django secret, runs migrations, seeds six clearly labeled fictional jobs, and publishes an `onrender.com` URL.
+The repository includes `render.yaml` for a temporary Render deployment. Connect the GitHub repository to Render and create a Blueprint from that file. Render creates the web service and PostgreSQL database, generates the Django secret, runs migrations, idempotently seeds six clearly labeled fictional jobs on startup, and publishes an `onrender.com` URL.
 
 This Blueprint uses Render's free plans for an interview demo only. The web process sleeps after 15 minutes without traffic and may take about a minute to wake. The free database expires after 30 days. The service filesystem is temporary, so uploaded resumes are not durable. Do not ask interviewers or other visitors to upload real resumes, and do not use this setup for real applicants. Open the site shortly before the interview to wake it up.
 

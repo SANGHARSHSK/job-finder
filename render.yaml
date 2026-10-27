@@ -12,9 +12,8 @@ services:
     plan: free
     region: singapore
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    startCommand: python manage.py migrate --noinput && gunicorn jobfinder.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --access-logfile -
+    startCommand: python manage.py migrate --noinput && python manage.py seed_demo_jobs && gunicorn jobfinder.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --access-logfile -
     healthCheckPath: /health/
-    initialDeployHook: python manage.py seed_demo_jobs
     envVars:
       - key: DATABASE_URL
         fromDatabase:
