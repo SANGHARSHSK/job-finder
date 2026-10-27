@@ -1,15 +1,21 @@
+from datetime import timedelta
+
 from django.db import models
 from django.urls import reverse
 from django.db.models import Q
+from django.utils import timezone
 from companies.models import Company
 from core.models import TimeStampedModel
 from accounts.models import JobSeekerProfile
-from django.db.models import Q
 
 
 class JobQuerySet(models.QuerySet):
     def open(self):
-        return self.filter(status=Job.Status.OPEN)
+        cutoff = timezone.now() - timedelta(days=Job.CONFIRMATION_INTERVAL_DAYS)
+        return self.filter(
+            status=Job.Status.OPEN,
+            last_confirmed_at__gte=cutoff,
+        )
 
     def search(self, query):
         if not query:
@@ -22,6 +28,7 @@ class JobQuerySet(models.QuerySet):
 
 class Job(TimeStampedModel):
     objects = JobQuerySet.as_manager()
+    CONFIRMATION_INTERVAL_DAYS = 30
 
     class EmploymentType(models.TextChoices):
         FULL_TIME = "full_time", "Full-time"
@@ -55,6 +62,7 @@ class Job(TimeStampedModel):
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.OPEN, db_index=True
     )
+    last_confirmed_at = models.DateTimeField(default=timezone.now, editable=False)
 
     class Meta:
         indexes = [models.Index(fields=["status", "-created_at"])]
@@ -68,7 +76,12 @@ class Job(TimeStampedModel):
 
     @property
     def is_open(self):
-        return self.status == self.Status.OPEN
+        return self.status == self.Status.OPEN and not self.needs_confirmation
+
+    @property
+    def needs_confirmation(self):
+        cutoff = timezone.now() - timedelta(days=self.CONFIRMATION_INTERVAL_DAYS)
+        return self.last_confirmed_at is None or self.last_confirmed_at < cutoff
 
 class SavedJob(TimeStampedModel):
     applicant = models.ForeignKey(
@@ -86,4 +99,3 @@ class SavedJob(TimeStampedModel):
 
     def __str__(self):
         return f"{self.applicant.user.username} saved {self.job.title}"
-    

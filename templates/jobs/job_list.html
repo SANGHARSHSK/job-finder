@@ -8,8 +8,14 @@
 {% block content %}
   <h1>Browse jobs</h1>
 
-  <div class="job-search-layout">
-    <aside class="job-filters">
+  <details class="job-filters">
+    <summary class="job-filters__toggle">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M7 12h10m-7 7h4"/></svg>
+      <span>Filters</span>
+      {% if active_filter_count %}<span class="job-filters__count">{{ active_filter_count }} active</span>{% endif %}
+      <svg class="job-filters__chevron" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </summary>
+    <div class="job-filters__panel">
       <form method="get">
         <div class="mb-3">
           <label for="filter-q">Keyword</label>
@@ -61,8 +67,10 @@
           <a href="{% url 'jobs:list' %}" class="job-filters__clear">Clear all filters</a>
         {% endif %}
       </form>
-    </aside>
+    </div>
+  </details>
 
+  <div class="job-search-layout">
     <div class="job-results">
       {% if jobs %}
         <p class="job-results__count text-muted">
@@ -97,7 +105,7 @@
                 {% endif %}
               </div>
               <p class="job-card__description">{{ job.description|truncatewords:28 }}</p>
-              <p class="job-card__posted text-muted">Posted {{ job.created_at|naturaltime }}</p>
+              <p class="job-card__posted text-muted">Posted {{ job.created_at|naturaltime }} · Employer confirmed open {{ job.last_confirmed_at|naturaltime }}</p>
             </div>
 
             {% if user.is_authenticated and user.is_job_seeker %}

@@ -11,7 +11,7 @@
   {% if jobs %}
     <div class="table-responsive"><table class="table">
       <thead>
-        <tr><th>Title</th><th>Location</th><th>Status</th><th>Posted</th><th></th></tr>
+        <tr><th>Title</th><th>Location</th><th>Status</th><th>Last confirmed</th><th>Posted</th><th></th></tr>
       </thead>
       <tbody>
         {% for job in jobs %}
@@ -19,6 +19,17 @@
             <td>{{ job.title }}</td>
             <td>{{ job.location }}</td>
             <td>{{ job.get_status_display }}</td>
+            <td>
+              {% if job.status == "open" and job.needs_confirmation %}
+                <form method="post" action="{% url 'jobs:confirm_open' pk=job.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-warning">Confirm still open</button>
+                </form>
+                <small class="text-muted">Hidden from job seekers until confirmed</small>
+              {% else %}
+                {{ job.last_confirmed_at|date:"M j, Y" }}
+              {% endif %}
+            </td>
             <td>{{ job.created_at|date:"M j, Y" }}</td>
             <td>
               <a href="{% url 'applications:job_applicants' pk=job.pk %}">Applicants</a>

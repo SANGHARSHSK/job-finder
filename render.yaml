@@ -1,0 +1,32 @@
+databases:
+  - name: job-finder-db
+    databaseName: job_finder
+    user: job_finder
+    plan: free
+    region: singapore
+
+services:
+  - type: web
+    name: job-finder
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: python manage.py migrate --noinput && gunicorn jobfinder.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --access-logfile -
+    healthCheckPath: /health/
+    initialDeployHook: python manage.py seed_demo_jobs
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: job-finder-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: EMAIL_BACKEND
+        value: django.core.mail.backends.console.EmailBackend
+      - key: MEDIA_ROOT
+        value: /tmp/job-finder-media
+      - key: SECURE_HSTS_SECONDS
+        value: "0"

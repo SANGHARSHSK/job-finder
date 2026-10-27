@@ -22,6 +22,7 @@
             {{ job.location }}
           </span>
           <span>Posted {{ job.created_at|naturaltime }}</span>
+          <span>Employer confirmed open {{ job.last_confirmed_at|naturaltime }}</span>
         </p>
         <div class="job-card__badges">
           <span class="badge badge--neutral">{{ job.get_employment_type_display }}</span>
@@ -37,7 +38,11 @@
       </header>
 
       {% if not job.is_open %}
-        <p class="alert alert-secondary">This job is no longer accepting applications.</p>
+        {% if job.status == "open" and job.needs_confirmation %}
+          <p class="alert alert-warning">The employer has not confirmed this listing in the last {{ job.CONFIRMATION_INTERVAL_DAYS }} days. Applications are paused until they confirm it is still open.</p>
+        {% else %}
+          <p class="alert alert-secondary">This job is no longer accepting applications.</p>
+        {% endif %}
       {% endif %}
 
       <section class="job-detail__section">

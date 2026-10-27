@@ -76,6 +76,24 @@ class JobListView(ListView):
         context["experience_levels"] = Job.ExperienceLevel.choices
         context["posted_choices"] = self.POSTED_CHOICES
         context["current_filters"] = self.request.GET
+        filters = self.request.GET
+        active_values = (
+            filters.get("q", "").strip(),
+            filters.get("location", "").strip(),
+            filters.get("type", "")
+            if filters.get("type", "") in Job.EmploymentType.values
+            else "",
+            filters.get("level", "")
+            if filters.get("level", "") in Job.ExperienceLevel.values
+            else "",
+            filters.get("min_salary", "")
+            if filters.get("min_salary", "").isdigit()
+            else "",
+            filters.get("posted", "")
+            if filters.get("posted", "") in {"1", "3", "7", "30"}
+            else "",
+        )
+        context["active_filter_count"] = sum(bool(value) for value in active_values)
 
         user = self.request.user
         if user.is_authenticated and user.is_job_seeker:
@@ -184,8 +202,27 @@ class JobUpdateView(OwnerJobMixin, UpdateView):
     success_url = reverse_lazy("jobs:employer_job_list")
 
     def form_valid(self, form):
+        if form.cleaned_data.get("status") == Job.Status.OPEN:
+            form.instance.last_confirmed_at = timezone.now()
         messages.success(self.request, "Job updated.")
         return super().form_valid(form)
+
+
+@login_required
+@require_POST
+def confirm_job_open(request, pk):
+    if not request.user.is_employer:
+        raise PermissionDenied
+
+    company = getattr(request.user.get_profile(), "company", None)
+    job = get_object_or_404(Job, pk=pk, company=company)
+    if job.status != Job.Status.OPEN:
+        messages.error(request, "Reopen this job before confirming it is still open.")
+    else:
+        job.last_confirmed_at = timezone.now()
+        job.save(update_fields=["last_confirmed_at", "updated_at"])
+        messages.success(request, "Job confirmed and visible to job seekers for 30 more days.")
+    return redirect("jobs:employer_job_list")
 
 class JobDeleteView(OwnerJobMixin, DeleteView):
     template_name = "jobs/job_confirm_delete.html"

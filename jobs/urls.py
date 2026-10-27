@@ -10,6 +10,7 @@ urlpatterns = [
     path("jobs/<int:pk>/save/", views.toggle_save_job, name="toggle_save"),
     path("saved-jobs/", views.SavedJobsListView.as_view(), name="saved_jobs"),
     path("employer/jobs/", views.EmployerJobListView.as_view(), name="employer_job_list"),
+    path("employer/jobs/<int:pk>/confirm/", views.confirm_job_open, name="confirm_open"),
     path(
         "employer/jobs/new/",
         views.require_company(views.JobCreateView.as_view()),
